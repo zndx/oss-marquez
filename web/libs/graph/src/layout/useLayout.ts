@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import ELK, { ElkNode } from 'elkjs'
+import ElkJs, { ElkNode } from 'elkjs'
 import isEqual from 'lodash/isEqual'
 
 import { useCallbackRef } from '../utils/hooks'
 import type { Direction, Edge, Node, NodeRenderer, PositionedEdge, PositionedNode } from '../types'
+
+// Webpack CJS interop: `import ELK from 'elkjs'` sometimes yields a module
+// namespace, so `new ELK()` throws "o is not a constructor" and blank-screens
+// the lineage graph (jobs / datasets navigation).
+// Prefer the bundled build without a web worker for lab reliability.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ElkConstructor: any =
+  typeof ElkJs === 'function' ? ElkJs : (ElkJs as any)?.default ?? ElkJs
 
 export interface Props<K, D> {
   id?: string
@@ -68,7 +76,8 @@ export const useLayout = <K, D>({
   edges,
   direction = 'right',
   keepPreviousGraph: keepPreviousLayout = false,
-  webWorkerUrl = '/elk-worker.min.js',
+  // Empty worker URL → main-thread ELK (avoids Worker + webpack interop issues).
+  webWorkerUrl = '',
   getLayoutOptions = (node) => node,
 }: Props<K, D>): Output<K, D> => {
   /* STATE */
@@ -163,18 +172,29 @@ export const useLayout = <K, D>({
   /* EFFECTS */
   // Render
   useEffect(() => {
-    const elk = new ELK({
-      workerUrl: webWorkerUrl,
-    })
+    if (typeof ElkConstructor !== 'function') {
+      setElkRenderedInput(elkInput)
+      setElkOutput(undefined)
+      setError(new Error('ELK layout constructor unavailable after webpack interop'))
+      return
+    }
 
+    // Prefer main-thread layout when workerUrl is empty/unset.
+    const elk = webWorkerUrl
+      ? new ElkConstructor({ workerUrl: webWorkerUrl })
+      : new ElkConstructor()
+
+    let cancelled = false
     elk
       .layout(elkInput)
-      .then((rootNode) => {
+      .then((rootNode: ElkNode) => {
+        if (cancelled) return
         setElkRenderedInput(elkInput)
         setElkOutput(rootNode)
         setError(undefined)
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
+        if (cancelled) return
         setElkRenderedInput(elkInput)
         setElkOutput(undefined)
         setError(err)
@@ -182,8 +202,15 @@ export const useLayout = <K, D>({
 
     // Cancel the current job when input changes.
     return () => {
-      // @ts-expect-error https://github.com/kieler/elkjs/issues/208
-      if (elk.worker) elk.terminateWorker()
+      cancelled = true
+      // https://github.com/kieler/elkjs/issues/208 — worker may be absent on main-thread path
+      if (elk.worker) {
+        try {
+          elk.terminateWorker()
+        } catch (_e) {
+          // ignore
+        }
+      }
     }
   }, [elkInput, webWorkerUrl])
 

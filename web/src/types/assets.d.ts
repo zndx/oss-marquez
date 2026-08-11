@@ -14,8 +14,7 @@ declare module '*.svg' {
   export default ReactComponent;
 }
 
-// webpack resourceQuery /url (import x from './file.svg?url')
-declare module '*?url' {
+declare module '*.svg?url' {
   const src: string;
   export default src;
 }

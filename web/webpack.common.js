@@ -20,19 +20,20 @@ module.exports = {
             }
         }]
       },
+      // Images (do NOT include svg here — dual-handled below)
       {
-        test: /\.(png|jpe?g|gif|svg)(\?v=\d+\.\d+\.\d+)?$/,
-        loader: 'file-loader'
+        test: /\.(png|jpe?g|gif)(\?v=\d+\.\d+\.\d+)?$/,
+        type: 'asset/resource',
+        generator: {
+          filename: '[name].[hash:8][ext]'
+        }
       },
       {
         test: /\.(woff(2)?|ttf|eot|otf)(\?v=\d+\.\d+\.\d+)?$/,
-        use: [{
-          loader: 'file-loader',
-          options: {
-            name: '[name].[ext]',
-            outputPath: 'fonts/'
-          }
-        }]
+        type: 'asset/resource',
+        generator: {
+          filename: 'fonts/[name][ext]'
+        }
       },
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
       {
@@ -41,23 +42,41 @@ module.exports = {
       },
       {
         test: /\.ico$/,
-        loader: 'file-loader'
+        type: 'asset/resource'
       },
+      // SVG dual mode:
+      //   import Icon from './x.svg'        → React component (@svgr)
+      //   import url from './x.svg?url'     → file URL (img src)
+      // The previous file-loader rule matched ALL svgs first and broke
+      // `import { ReactComponent as X }` (undefined → React error #130 white screen).
       {
-        test: /\.svg$/,
-        use: ['@svgr/webpack'], // Use the @svgr/webpack loader
-        issuer: {
-          and: [/\.(js|ts|jsx|tsx)$/], // Only apply this rule to JS/TS files
-        },
-        type: 'javascript/auto', // Prevent Webpack's asset module from interfering
-      },
-      // Fallback rule for SVGs imported elsewhere (e.g., in CSS)
-      {
-        test: /\.svg$/,
-        type: 'asset/resource',
-        issuer: {
-          and: [/\.(css|sass|scss|less)$/], // Only apply this rule to style files
-        },
+        test: /\.svg$/i,
+        oneOf: [
+          {
+            resourceQuery: /url/,
+            type: 'asset/resource',
+            generator: {
+              filename: '[name].[hash:8][ext]'
+            }
+          },
+          {
+            issuer: /\.[jt]sx?$/,
+            use: [{
+              loader: '@svgr/webpack',
+              options: {
+                svgo: false,
+                titleProp: true,
+                ref: true,
+              }
+            }]
+          },
+          {
+            type: 'asset/resource',
+            generator: {
+              filename: '[name].[hash:8][ext]'
+            }
+          }
+        ]
       },
     ]
   },

@@ -24,9 +24,10 @@ import MqEmpty from '../../core/empty/MqEmpty'
 import MqStatus from '../../core/status/MqStatus'
 import MqText from '../../core/text/MqText'
 import React, { useCallback, useEffect } from 'react'
-import airflow_logo from './airlfow-logo.svg'
-import dbt_logo from './dbt-logo.svg'
-import spark_logo from './spark-logo.svg'
+// ?url → asset URL for <img src> (see webpack.common.js SVG oneOf)
+import airflow_logo from './airlfow-logo.svg?url'
+import dbt_logo from './dbt-logo.svg?url'
+import spark_logo from './spark-logo.svg?url'
 
 interface StateProps {
   openSearchJobs: IOpenSearchJobsState

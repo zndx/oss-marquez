@@ -416,7 +416,9 @@ export const ZoomPanSvg = ({
               backgroundColor={backgroundColor}
               dotGridColor={dotGridColor}
             />
-              {{children} as any}
+            {/* Was `{{children} as any}` (object {children}) → React 19 error #31 blanked lineage.
+                Cast for Fragment typing under React 19 + i18n ReactNode quirks. */}
+            {children as React.ReactNode}
           </>
         </g>
       </svg>

@@ -19,8 +19,10 @@ import { MqInputNoIcon } from '../core/input-base/MqInputBase'
 import { useTheme } from '@emotion/react'
 
 import { Dashboard } from '@mui/icons-material'
-import { ReactComponent as IconSearchArrow } from '../../img/iconSearchArrow.svg'
-import { ReactComponent as marquez_logo } from './marquez-icon-white-solid.svg'
+// Default SVGR export (webpack.common.js). Named ReactComponent was undefined
+// under the old file-loader rule and white-screened the app (React error #130).
+import IconSearchArrow from '../../img/iconSearchArrow.svg'
+import MarquezLogo from './marquez-icon-white-solid.svg'
 
 interface SidenavProps {}
 
@@ -72,7 +74,7 @@ const Sidenav: React.FC<SidenavProps> = () => {
             height={HEADER_HEIGHT}
           >
             <Link to='/'>
-              <img src={marquez_logo} height={40} alt='Marquez Logo' />
+              <MarquezLogo height={40} aria-label='Marquez Logo' />
             </Link>
           </Box>
           <Divider sx={{ my: 1 }} />
